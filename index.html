@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Regression Lab</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --cream: #f5f0ea;
+  --warm-white: #faf8f5;
+  --sand: #e8dfd4;
+  --stone: #c4b8aa;
+  --charcoal: #2a2520;
+  --dark: #1a1612;
+  --orange: #e8631a;
+  --orange-soft: #f08a50;
+  --orange-glow: rgba(232,99,26,0.28);
+  --text-dark: #2a2520;
+  --text-mid: #7a6f66;
+  --text-light: #a89e94;
+  --glass: rgba(250,248,245,0.75);
+  --glass-border: rgba(255,255,255,0.65);
+  --shadow: 0 8px 32px rgba(42,37,32,0.10), 0 2px 8px rgba(42,37,32,0.05);
+  --shadow-lg: 0 24px 80px rgba(42,37,32,0.18), 0 4px 16px rgba(42,37,32,0.08);
+}
+
+html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'DM Sans', sans-serif; color: var(--text-dark); }
+
+/* BG */
+body {
+  background: linear-gradient(135deg, #f7f2ec 0%, #ede5d8 50%, #e5dace 100%);
+}
+body::before {
+  content: '';
+  position: fixed;
+  top: -100px; right: -60px;
+  width: 480px; height: 480px;
+  background: radial-gradient(circle, rgba(232,99,26,0.20) 0%, transparent 68%);
+  border-radius: 50%; pointer-events: none; z-index: 0;
+}
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -80px; left: 25%;
+  width: 380px; height: 380px;
+  background: radial-gradient(circle, rgba(232,140,26,0.12) 0%, transparent 65%);
+  border-radius: 50%; pointer-events: none; z-index: 0;
+}
+
+.app {
+  position: relative; z-index: 1;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding: 16px;
+  gap: 14px;
+}
+
+/* ── HEADER ── */
+header {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--glass);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  padding: 12px 20px;
+  box-shadow: var(--shadow);
+}
+
+.logo-mark {
+  width: 34px; height: 34px;
+  background: var(--charcoal);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.logo-mark span { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--cream); line-height: 1; }
+
+.logo-text { display: flex; flex-direction: column; gap: 1px; }
+.logo-name { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--charcoal); line-height: 1; letter-spacing: -0.3px; }
+.logo-sub { font-size: 11px; color: var(--text-light); font-weight: 400; }
+
+.hdr-sep { width: 1px; height: 26px; background: var(--sand); margin: 0 4px; }
+
+.header-sub { font-size: 12px; color: var(--text-mid); font-weight: 400; flex: 1; line-height: 1.4; }
+
+.tabs {
+  display: flex; gap: 4px;
+  background: rgba(42,37,32,0.07);
+  padding: 4px; border-radius: 12px;
+}
+.tab-btn {
+  background: transparent; border: none;
+  color: var(--text-mid);
+  padding: 6px 13px;
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+  cursor: pointer; border-radius: 9px;
+  transition: all 0.2s;
+  display: flex; align-items: center; gap: 5px; white-space: nowrap;
+}
+.tab-btn.active { background: var(--charcoal); color: var(--cream); box-shadow: 0 2px 8px rgba(42,37,32,0.22); }
+.tab-btn:not(.active):hover { background: rgba(42,37,32,0.1); color: var(--text-dark); }
+.tdot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── MAIN ── */
+.main {
+  display: grid;
+  grid-template-columns: 232px 1fr 196px;
+  gap: 12px;
+  min-height: 0;
+}
+
+/* ── CARD ── */
+.card {
+  background: var(--glass);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* ── CONTROLS ── */
+.controls { display: flex; flex-direction: column; padding: 18px; overflow-y: auto; }
+.controls::-webkit-scrollbar { width: 0; }
+
+.sec-lbl {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+  color: var(--text-light); text-transform: uppercase;
+  display: block; margin-bottom: 14px;
+}
+
+.ctrl-row { margin-bottom: 14px; }
+.ctrl-lbl { display: block; font-size: 13px; font-weight: 500; color: var(--text-dark); margin-bottom: 6px; line-height: 1.3; }
+.ctrl-lbl small { display: block; font-size: 11px; color: var(--text-light); font-weight: 400; margin-top: 1px; }
+
+.sel-wrap { position: relative; }
+.sel-wrap::after { content: '↓'; position: absolute; right: 11px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--text-mid); pointer-events: none; }
+select {
+  width: 100%; appearance: none;
+  background: rgba(255,255,255,0.68);
+  border: 1.5px solid rgba(196,184,170,0.5);
+  color: var(--text-dark);
+  padding: 8px 30px 8px 12px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  border-radius: 11px; cursor: pointer; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+select:focus { border-color: var(--orange); box-shadow: 0 0 0 3px var(--orange-glow); }
+
+.slider-wrap { display: flex; align-items: center; gap: 10px; }
+input[type=range] {
+  flex: 1; -webkit-appearance: none;
+  height: 4px; background: rgba(196,184,170,0.5);
+  border-radius: 4px; outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 15px; height: 15px;
+  border-radius: 50%; background: var(--charcoal);
+  border: 2.5px solid var(--cream);
+  box-shadow: 0 1px 5px rgba(42,37,32,0.22);
+  cursor: pointer; transition: transform 0.12s, background 0.18s;
+}
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.18); background: var(--orange); }
+
+.slider-val {
+  font-family: 'DM Serif Display', serif; font-style: italic;
+  font-size: 15px; color: var(--charcoal); min-width: 34px; text-align: right;
+}
+
+/* checkbox */
+.chk-row { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; cursor: pointer; }
+.chk-row input[type=checkbox] { display: none; }
+.chk-box {
+  width: 17px; height: 17px; border-radius: 5px;
+  border: 1.5px solid var(--stone);
+  background: rgba(255,255,255,0.65);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.16s; flex-shrink: 0;
+}
+.chk-row input:checked + .chk-box { background: var(--charcoal); border-color: var(--charcoal); }
+.chk-box::after {
+  content: ''; width: 4px; height: 7px;
+  border: 2px solid var(--cream); border-top: none; border-left: none;
+  transform: rotate(42deg) translateY(-1px); display: none;
+}
+.chk-row input:checked + .chk-box::after { display: block; }
+.chk-lbl { font-size: 12.5px; font-weight: 500; color: var(--text-dark); user-select: none; line-height: 1.35; }
+.chk-lbl small { display: block; font-size: 10.5px; color: var(--text-light); font-weight: 400; }
+
+.divider { height: 1px; background: rgba(196,184,170,0.3); margin: 8px 0 14px; }
+
+.poly-section { transition: opacity 0.22s; }
+.poly-section.disabled { opacity: 0.33; pointer-events: none; }
+
+.pill {
+  display: inline-flex; align-items: center; font-size: 9.5px; font-weight: 700;
+  letter-spacing: 0.3px; padding: 2px 7px; border-radius: 20px;
+  background: rgba(232,99,26,0.1); color: var(--orange);
+  border: 1px solid rgba(232,99,26,0.22); vertical-align: middle; margin-left: 6px;
+}
+
+.btn-row { display: flex; gap: 7px; }
+.btn {
+  flex: 1; padding: 9px 6px;
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700;
+  border-radius: 11px; cursor: pointer; transition: all 0.18s;
+  border: none; letter-spacing: 0.1px;
+}
+.btn-ghost { background: rgba(42,37,32,0.07); color: var(--text-mid); }
+.btn-ghost:hover { background: rgba(42,37,32,0.13); color: var(--text-dark); }
+.btn-dark { background: var(--charcoal); color: var(--cream); box-shadow: 0 2px 10px rgba(42,37,32,0.2); }
+.btn-dark:hover { background: var(--dark); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(42,37,32,0.28); }
+
+.metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 14px; }
+.met-card {
+  background: rgba(255,255,255,0.55);
+  border: 1px solid rgba(255,255,255,0.8);
+  border-radius: 13px; padding: 10px 11px;
+}
+.met-name { font-size: 9.5px; font-weight: 700; letter-spacing: 1.2px; color: var(--text-light); text-transform: uppercase; display: block; margin-bottom: 3px; }
+.met-val { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--charcoal); display: block; line-height: 1; }
+.met-val.good { color: #2a7a4a; }
+.met-val.warn { color: var(--orange); }
+
+/* ── CANVAS ── */
+.canvas-area {
+  position: relative; border-radius: 22px; overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+.canvas-dark {
+  position: absolute; inset: 0;
+  background: linear-gradient(145deg, #1c1814 0%, #2e2618 55%, #1a1410 100%);
+}
+.canvas-orb1 {
+  position: absolute; top: 10%; right: 12%;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(232,99,26,0.20) 0%, transparent 65%);
+  border-radius: 50%; pointer-events: none; z-index: 1;
+}
+.canvas-orb2 {
+  position: absolute; bottom: 15%; left: 10%;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(80,140,200,0.10) 0%, transparent 65%);
+  border-radius: 50%; pointer-events: none; z-index: 1;
+}
+#three-canvas { position: relative; z-index: 2; display: block; width: 100% !important; height: 100% !important; }
+
+.hud {
+  position: absolute; top: 16px; left: 18px; z-index: 10; pointer-events: none;
+}
+.hud-lbl { font-size: 10px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(245,240,234,0.38); margin-bottom: 3px; }
+.hud-model { font-family: 'DM Serif Display', serif; font-size: 17px; color: rgba(245,240,234,0.82); line-height: 1.25; }
+
+.orbit-hint {
+  position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 10;
+  pointer-events: none; font-size: 11.5px; font-weight: 500;
+  color: rgba(245,240,234,0.38);
+  background: rgba(20,16,12,0.45); backdrop-filter: blur(8px);
+  padding: 5px 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.07); white-space: nowrap;
+}
+
+.loading-overlay {
+  position: absolute; inset: 0; z-index: 20;
+  background: rgba(22,18,14,0.65); backdrop-filter: blur(8px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  transition: opacity 0.4s;
+}
+.loading-overlay.hidden { opacity: 0; pointer-events: none; }
+.spinner { width: 34px; height: 34px; border: 2.5px solid rgba(245,240,234,0.10); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-txt { font-size: 11px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: rgba(245,240,234,0.45); }
+
+/* ── LEGEND ── */
+.legend { display: flex; flex-direction: column; overflow-y: auto; }
+.legend::-webkit-scrollbar { width: 0; }
+
+.leg-sec { padding: 16px 16px 12px; border-bottom: 1px solid rgba(196,184,170,0.22); }
+.leg-sec:last-child { border-bottom: none; }
+
+.leg-title { font-size: 9.5px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-light); margin-bottom: 10px; }
+
+.leg-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.leg-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+.leg-txt { font-size: 12px; font-weight: 500; color: var(--text-dark); line-height: 1.4; }
+.leg-txt b { font-weight: 700; color: var(--charcoal); }
+
+.formula {
+  background: rgba(42,37,32,0.06);
+  border: 1px solid rgba(196,184,170,0.35);
+  border-radius: 11px; padding: 10px 12px;
+  font-family: 'DM Serif Display', serif; font-style: italic;
+  font-size: 12px; color: var(--charcoal); line-height: 1.85;
+}
+.formula .cmt { font-family: 'DM Sans', sans-serif; font-style: normal; font-size: 10px; color: var(--text-light); font-weight: 600; }
+
+.model-sw { display: flex; flex-direction: column; gap: 5px; }
+.model-btn {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 11px;
+  border-radius: 11px; border: 1.5px solid rgba(196,184,170,0.38);
+  background: rgba(255,255,255,0.38);
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+  color: var(--text-mid); cursor: pointer; transition: all 0.17s; text-align: left;
+}
+.model-btn.active { background: var(--charcoal); border-color: var(--charcoal); color: var(--cream); box-shadow: 0 2px 10px rgba(42,37,32,0.2); }
+.model-btn:not(.active):hover { background: rgba(255,255,255,0.7); border-color: rgba(196,184,170,0.65); color: var(--text-dark); }
+.mpip { width: 7px; height: 7px; border-radius: 3px; flex-shrink: 0; }
+
+.exp-txt { font-size: 11.5px; color: var(--text-mid); font-weight: 400; line-height: 1.65; }
+.exp-txt strong { color: var(--text-dark); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo-mark"><span>R</span></div>
+    <div class="logo-text">
+      <span class="logo-name">Regression Lab</span>
+      <span class="logo-sub">3D Geometry Visualizer</span>
+    </div>
+    <div class="hdr-sep"></div>
+    <span class="header-sub">Explore Simple · Multiple · Polynomial regression in interactive 3D space</span>
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-surface"><span class="tdot" style="background:#e8631a"></span>Surface Fit</button>
+      <button class="tab-btn" id="tab-residuals"><span class="tdot" style="background:#2a7a4a"></span>Residuals</button>
+      <button class="tab-btn" id="tab-orbit"><span class="tdot" style="background:#7a6f66"></span>Auto Orbit</button>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- CONTROLS -->
+    <div class="card controls">
+      <span class="sec-lbl">Controls</span>
+
+      <div class="ctrl-row">
+        <label class="ctrl-lbl">Regression type</label>
+        <div class="sel-wrap">
+          <select id="reg-type">
+            <option value="simple">Simple: y → x₁</option>
+            <option value="multiple">Multiple: y → x₁ + x₂</option>
+            <option value="polynomial">Polynomial surface</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="poly-section disabled" id="poly-controls">
+        <div class="ctrl-row">
+          <label class="ctrl-lbl">Polynomial degree <span class="pill">Poly only</span></label>
+          <div class="slider-wrap">
+            <input type="range" id="poly-degree" min="1" max="5" value="2">
+            <span class="slider-val" id="poly-degree-val">2</span>
+          </div>
+        </div>
+        <label class="chk-row">
+          <input type="checkbox" id="include-interaction" checked>
+          <span class="chk-box"></span>
+          <span class="chk-lbl">Include interaction x₁×x₂<small>Polynomial only</small></span>
+        </label>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="ctrl-row">
+        <label class="ctrl-lbl">Samples (n)</label>
+        <div class="slider-wrap">
+          <input type="range" id="samples" min="50" max="500" value="200" step="10">
+          <span class="slider-val" id="samples-val">200</span>
+        </div>
+      </div>
+
+      <div class="ctrl-row">
+        <label class="ctrl-lbl">Noise level</label>
+        <div class="slider-wrap">
+          <input type="range" id="noise" min="0" max="30" value="8" step="0.5">
+          <span class="slider-val" id="noise-val">8.0</span>
+        </div>
+      </div>
+
+      <div class="ctrl-row">
+        <label class="ctrl-lbl">Collinearity x₁↔x₂</label>
+        <div class="slider-wrap">
+          <input type="range" id="collinearity" min="0" max="0.99" value="0.3" step="0.01">
+          <span class="slider-val" id="collinearity-val">0.30</span>
+        </div>
+      </div>
+
+      <div class="ctrl-row">
+        <label class="ctrl-lbl">Surface resolution</label>
+        <div class="slider-wrap">
+          <input type="range" id="resolution" min="10" max="60" value="30" step="5">
+          <span class="slider-val" id="resolution-val">30</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <label class="chk-row">
+        <input type="checkbox" id="show-surface" checked>
+        <span class="chk-box"></span>
+        <span class="chk-lbl">Show fitted surface</span>
+      </label>
+      <label class="chk-row">
+        <input type="checkbox" id="show-residuals">
+        <span class="chk-box"></span>
+        <span class="chk-lbl">Show residual bars</span>
+      </label>
+
+      <div class="divider"></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="btn-regen">Regenerate</button>
+        <button class="btn btn-dark" id="btn-refit">Refit model</button>
+      </div>
+
+      <div class="metrics">
+        <div class="met-card">
+          <span class="met-name">RMSE</span>
+          <span class="met-val" id="rmse-val">—</span>
+        </div>
+        <div class="met-card">
+          <span class="met-name">R²</span>
+          <span class="met-val" id="r2-val">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CANVAS -->
+    <div class="canvas-area">
+      <div class="canvas-dark"></div>
+      <div class="canvas-orb1"></div>
+      <div class="canvas-orb2"></div>
+      <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-txt">Fitting Model</div>
+      </div>
+      <canvas id="three-canvas"></canvas>
+      <div class="hud">
+        <div class="hud-lbl">3D Fit Geometry</div>
+        <div class="hud-model" id="model-label">Simple y = β₀ + β₁x₁</div>
+      </div>
+      <div class="orbit-hint">Drag to rotate · Scroll to zoom · Right-click to pan</div>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="card legend">
+      <div class="leg-sec">
+        <div class="leg-title">Legend</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#e8631a"></div><div class="leg-txt"><b>Orange/Blue</b> — data (y)</div></div>
+        <div class="leg-item"><div class="leg-dot" style="background:#f5f0ea;border:1px solid #c4b8aa"></div><div class="leg-txt"><b>White</b> — prediction (ŷ)</div></div>
+        <div class="leg-item"><div class="leg-dot" style="background:#e84a4a"></div><div class="leg-txt"><b>Red lines</b> — residuals</div></div>
+        <div class="leg-item"><div class="leg-dot" style="background:rgba(80,190,120,0.7)"></div><div class="leg-txt"><b>Green mesh</b> — fit surface</div></div>
+      </div>
+
+      <div class="leg-sec">
+        <div class="leg-title">Formula</div>
+        <div class="formula" id="formula-box">
+          <span class="cmt">// Simple linear</span><br>
+          y = β₀ + β₁·x₁
+        </div>
+      </div>
+
+      <div class="leg-sec">
+        <div class="leg-title">Switch Model</div>
+        <div class="model-sw">
+          <button class="model-btn active" data-model="simple"><div class="mpip" style="background:#e8631a"></div>Simple</button>
+          <button class="model-btn" data-model="multiple"><div class="mpip" style="background:#2a7a4a"></div>Multiple</button>
+          <button class="model-btn" data-model="polynomial"><div class="mpip" style="background:#7a4aaa"></div>Polynomial</button>
+        </div>
+      </div>
+
+      <div class="leg-sec">
+        <div class="leg-title">Metrics Guide</div>
+        <p class="exp-txt">
+          <strong>RMSE</strong> — average error magnitude. Lower is better.<br><br>
+          <strong>R²</strong> — variance explained. Closer to 1.0 is better. Negative = worse than a flat mean line.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+const state={
+  regType:'simple',polyDegree:2,includeInteraction:true,
+  samples:200,noise:8,collinearity:0.3,resolution:30,
+  showSurface:true,showResiduals:false,
+  data:null,model:null
+};
+
+// ── MATH ──
+function randn(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+
+function generateData(){
+  const n=state.samples,ns=state.noise,rho=state.collinearity;
+  const x1=[],x2=[],y=[];
+  for(let i=0;i<n;i++){
+    const a=randn()*3,b=randn()*3;
+    const xi1=a,xi2=rho*a+Math.sqrt(1-rho*rho)*b;
+    x1.push(xi1);x2.push(xi2);
+    let yi;
+    if(state.regType==='simple')yi=2*xi1+1+randn()*ns;
+    else if(state.regType==='multiple')yi=2*xi1+1.5*xi2+1+randn()*ns;
+    else{yi=1.5*xi1-0.4*xi1**2+xi2+0.3*xi2**2;if(state.includeInteraction)yi+=0.5*xi1*xi2;yi+=1+randn()*ns;}
+    y.push(yi);
+  }
+  state.data={x1,x2,y};
+}
+
+function matMul(A,B,m,n,p){const C=new Array(m*p).fill(0);for(let i=0;i<m;i++)for(let k=0;k<n;k++)for(let j=0;j<p;j++)C[i*p+j]+=A[i*n+k]*B[k*p+j];return C;}
+function transpose(A,m,n){const T=new Array(n*m);for(let i=0;i<m;i++)for(let j=0;j<n;j++)T[j*m+i]=A[i*n+j];return T;}
+function invertSmall(A,n){
+  const a=A.slice(),inv=Array.from({length:n*n},(_,k)=>k%(n+1)===0?1:0);
+  for(let col=0;col<n;col++){
+    let piv=-1,best=0;for(let r=col;r<n;r++)if(Math.abs(a[r*n+col])>best){best=Math.abs(a[r*n+col]);piv=r;}
+    if(piv<0)return null;
+    if(piv!==col)for(let j=0;j<n;j++){[a[col*n+j],a[piv*n+j]]=[a[piv*n+j],a[col*n+j]];[inv[col*n+j],inv[piv*n+j]]=[inv[piv*n+j],inv[col*n+j]];}
+    const s=a[col*n+col];for(let j=0;j<n;j++){a[col*n+j]/=s;inv[col*n+j]/=s;}
+    for(let r=0;r<n;r++){if(r===col)continue;const f=a[r*n+col];for(let j=0;j<n;j++){a[r*n+j]-=f*a[col*n+j];inv[r*n+j]-=f*inv[col*n+j];}}
+  }
+  return inv;
+}
+
+function buildDesign(x1,x2){
+  return x1.map((_,i)=>{
+    const r=[1,x1[i]];
+    if(state.regType!=='simple')r.push(x2[i]);
+    if(state.regType==='polynomial'){for(let d=2;d<=state.polyDegree;d++){r.push(x1[i]**d);r.push(x2[i]**d);}if(state.includeInteraction)r.push(x1[i]*x2[i]);}
+    return r;
+  });
+}
+
+function fitModel(){
+  const{x1,x2,y}=state.data,n=x1.length;
+  const rows=buildDesign(x1,x2),p=rows[0].length;
+  const X=rows.flat(),Xt=transpose(X,n,p);
+  const XtX=matMul(Xt,X,p,n,p),XtXinv=invertSmall(XtX,p);
+  if(!XtXinv){state.model=null;return;}
+  const Xty=new Array(p).fill(0);
+  for(let j=0;j<p;j++)for(let i=0;i<n;i++)Xty[j]+=Xt[j*n+i]*y[i];
+  const beta=matMul(XtXinv,Xty,p,p,1);
+  const predict=(a1,a2)=>{
+    const r=[1,a1];
+    if(state.regType!=='simple')r.push(a2);
+    if(state.regType==='polynomial'){for(let d=2;d<=state.polyDegree;d++){r.push(a1**d);r.push(a2**d);}if(state.includeInteraction)r.push(a1*a2);}
+    return r.reduce((s,v,i)=>s+v*beta[i],0);
+  };
+  const yhat=x1.map((v,i)=>predict(v,x2[i]));
+  const yMean=y.reduce((a,b)=>a+b,0)/n;
+  const ss_res=y.reduce((s,v,i)=>s+(v-yhat[i])**2,0);
+  const ss_tot=y.reduce((s,v)=>s+(v-yMean)**2,0);
+  state.model={predict,yhat,rmse:Math.sqrt(ss_res/n),r2:1-ss_res/ss_tot};
+}
+
+// ── THREE.JS ──
+const canvas=document.getElementById('three-canvas');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(window.devicePixelRatio);
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(42,1,0.1,1000);
+camera.position.set(18,14,22);camera.lookAt(0,0,0);
+
+scene.add(new THREE.AmbientLight(0xffeedd,0.75));
+const sun=new THREE.DirectionalLight(0xe8884a,0.85);sun.position.set(12,20,8);scene.add(sun);
+
+const fill=new THREE.DirectionalLight(0x88ccff,0.25);fill.position.set(-10,5,-10);scene.add(fill);
+
+scene.add(new THREE.GridHelper(24,20,0x3a2e24,0x2a2018));
+const axM=new THREE.LineBasicMaterial({color:0x3a2e24});
+[[[-12,0,0],[12,0,0]],[[0,-10,0],[0,10,0]],[[0,0,-12],[0,0,12]]].forEach(([f,t])=>{
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...f),new THREE.Vector3(...t)]),axM));
+});
+
+let ptCloud=null,surfMesh=null,residLines=null;
+function disposeAll(){[ptCloud,surfMesh,residLines].forEach(o=>{if(o){o.geometry?.dispose();o.material?.dispose();scene.remove(o);}});ptCloud=surfMesh=residLines=null;}
+
+const SC=2.5;
+
+function buildScene(){
+  disposeAll();
+  if(!state.data||!state.model)return;
+  const{x1,x2,y}=state.data,{predict,yhat}=state.model,n=x1.length;
+  const yMin=Math.min(...y),yMax=Math.max(...y),yR=yMax-yMin||1;
+
+  // Points
+  const pg=new THREE.BufferGeometry();
+  const pp=new Float32Array(n*3),pc=new Float32Array(n*3);
+  for(let i=0;i<n;i++){
+    pp[i*3]=x1[i]*SC;pp[i*3+1]=y[i]*0.4;pp[i*3+2]=x2[i]*SC;
+    const t=(y[i]-yMin)/yR;
+    pc[i*3]=0.25+0.75*t;pc[i*3+1]=0.15+0.25*(1-t);pc[i*3+2]=0.35+0.55*(1-t);
+  }
+  pg.setAttribute('position',new THREE.BufferAttribute(pp,3));
+  pg.setAttribute('color',new THREE.BufferAttribute(pc,3));
+  ptCloud=new THREE.Points(pg,new THREE.PointsMaterial({size:0.20,vertexColors:true,sizeAttenuation:true}));
+  scene.add(ptCloud);
+
+  // Surface
+  if(state.showSurface){
+    const res=state.resolution;
+    const x1mn=Math.min(...x1),x1mx=Math.max(...x1),x2mn=Math.min(...x2),x2mx=Math.max(...x2);
+    const vt=[],sc=[],idx=[];
+    for(let i=0;i<=res;i++)for(let j=0;j<=res;j++){
+      const a=x1mn+(x1mx-x1mn)*i/res,b=x2mn+(x2mx-x2mn)*j/res,py=predict(a,b);
+      vt.push(a*SC,py*0.4,b*SC);
+      const t=(py-yMin)/yR;
+      sc.push(0.08+0.18*t,0.52+0.28*(1-t),0.22+0.22*t);
+    }
+    for(let i=0;i<res;i++)for(let j=0;j<res;j++){const a=i*(res+1)+j;idx.push(a,a+1,a+res+2,a,a+res+2,a+res+1);}
+    const sg=new THREE.BufferGeometry();
+    sg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(vt),3));
+    sg.setAttribute('color',new THREE.BufferAttribute(new Float32Array(sc),3));
+    sg.setIndex(idx);sg.computeVertexNormals();
+    surfMesh=new THREE.Mesh(sg,new THREE.MeshPhongMaterial({vertexColors:true,transparent:true,opacity:0.44,side:THREE.DoubleSide,shininess:90}));
+    scene.add(surfMesh);
+    surfMesh.add(new THREE.LineSegments(new THREE.WireframeGeometry(sg),new THREE.LineBasicMaterial({color:0x1e3828,transparent:true,opacity:0.16})));
+  }
+
+  // Residuals
+  if(state.showResiduals){
+    const rg=new THREE.BufferGeometry(),rp=[];
+    for(let i=0;i<n;i++){rp.push(x1[i]*SC,y[i]*0.4,x2[i]*SC,x1[i]*SC,yhat[i]*0.4,x2[i]*SC);}
+    rg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(rp),3));
+    residLines=new THREE.LineSegments(rg,new THREE.LineBasicMaterial({color:0xe84040,transparent:true,opacity:0.55}));
+    scene.add(residLines);
+  }
+}
+
+// ── ORBIT CONTROLS ──
+let drag=false,pan=false,px=0,py=0;
+let sph={theta:0.9,phi:0.6,r:36},panV=new THREE.Vector3();
+let autoOrbit=false;
+
+function updCam(){
+  const x=sph.r*Math.sin(sph.phi)*Math.sin(sph.theta);
+  const y=sph.r*Math.cos(sph.phi);
+  const z=sph.r*Math.sin(sph.phi)*Math.cos(sph.theta);
+  camera.position.set(x+panV.x,y+panV.y,z+panV.z);
+  camera.lookAt(panV);
+}
+updCam();
+
+canvas.addEventListener('mousedown',e=>{if(e.button===2)pan=true;else drag=true;px=e.clientX;py=e.clientY;});
+window.addEventListener('mouseup',()=>{drag=false;pan=false;});
+window.addEventListener('mousemove',e=>{
+  if(drag){sph.theta-=(e.clientX-px)*0.008;sph.phi=Math.max(0.05,Math.min(Math.PI-0.05,sph.phi-(e.clientY-py)*0.008));updCam();}
+  else if(pan){const r=new THREE.Vector3().crossVectors(camera.getWorldDirection(new THREE.Vector3()),camera.up).normalize();panV.addScaledVector(r,-(e.clientX-px)*0.04);panV.y+=(e.clientY-py)*0.04;updCam();}
+  px=e.clientX;py=e.clientY;
+});
+canvas.addEventListener('wheel',e=>{sph.r=Math.max(5,Math.min(80,sph.r+e.deltaY*0.05));updCam();e.preventDefault();},{passive:false});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+
+function resize(){const ca=document.querySelector('.canvas-area'),w=ca.clientWidth,h=ca.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}
+window.addEventListener('resize',resize);resize();
+
+(function loop(){requestAnimationFrame(loop);if(autoOrbit){sph.theta+=0.004;updCam();}renderer.render(scene,camera);})();
+
+// ── REFRESH ──
+function refresh(regen=true){
+  document.getElementById('loading').classList.remove('hidden');
+  setTimeout(()=>{
+    if(regen)generateData();
+    fitModel();buildScene();updateMetrics();updateFormula();
+    document.getElementById('loading').classList.add('hidden');
+  },30);
+}
+
+function updateMetrics(){
+  const rv=document.getElementById('rmse-val'),r2=document.getElementById('r2-val');
+  if(state.model){
+    rv.textContent=state.model.rmse.toFixed(3);rv.className='met-val';
+    r2.textContent=state.model.r2.toFixed(3);
+    r2.className='met-val '+(state.model.r2>0.5?'good':'warn');
+  }else{rv.textContent='—';r2.textContent='—';}
+}
+
+function updateFormula(){
+  const lbl=document.getElementById('model-label'),fb=document.getElementById('formula-box');
+  if(state.regType==='simple'){
+    lbl.textContent='Simple y = β₀ + β₁x₁';
+    fb.innerHTML='<span class="cmt">// Simple linear</span><br>y = β₀ + β₁·x₁';
+  }else if(state.regType==='multiple'){
+    lbl.textContent='Multiple y = β₀ + β₁x₁ + β₂x₂';
+    fb.innerHTML='<span class="cmt">// Multiple linear</span><br>y = β₀ + β₁·x₁<br>&nbsp;&nbsp;&nbsp;&nbsp;+ β₂·x₂';
+  }else{
+    const d=state.polyDegree;
+    lbl.textContent=`Polynomial surface (deg ${d})`;
+    fb.innerHTML=`<span class="cmt">// Polynomial deg=${d}</span><br>y = β₀ + β₁x₁ + ...<br>&nbsp;&nbsp;&nbsp;&nbsp;+ x₁ⁿ + x₂ⁿ${state.includeInteraction?'<br>&nbsp;&nbsp;&nbsp;&nbsp;+ β·x₁x₂':''}`;
+  }
+}
+
+function syncPoly(){document.getElementById('poly-controls').classList.toggle('disabled',state.regType!=='polynomial');}
+function syncModelBtns(){document.querySelectorAll('.model-btn').forEach(b=>b.classList.toggle('active',b.dataset.model===state.regType));document.getElementById('reg-type').value=state.regType;}
+
+// ── BINDINGS ──
+function bindSlider(id,vid,key,parse,dec){
+  const el=document.getElementById(id),ve=document.getElementById(vid);
+  el.addEventListener('input',()=>{state[key]=parse(el.value);ve.textContent=dec>0?state[key].toFixed(dec):state[key];});
+}
+bindSlider('poly-degree','poly-degree-val','polyDegree',parseInt,0);
+bindSlider('samples','samples-val','samples',parseInt,0);
+bindSlider('noise','noise-val','noise',parseFloat,1);
+bindSlider('collinearity','collinearity-val','collinearity',parseFloat,2);
+bindSlider('resolution','resolution-val','resolution',parseInt,0);
+
+document.getElementById('reg-type').addEventListener('change',e=>{state.regType=e.target.value;syncPoly();syncModelBtns();refresh(true);});
+document.getElementById('include-interaction').addEventListener('change',e=>state.includeInteraction=e.target.checked);
+document.getElementById('show-surface').addEventListener('change',e=>{state.showSurface=e.target.checked;buildScene();});
+document.getElementById('show-residuals').addEventListener('change',e=>{state.showResiduals=e.target.checked;buildScene();});
+document.getElementById('btn-regen').addEventListener('click',()=>refresh(true));
+document.getElementById('btn-refit').addEventListener('click',()=>refresh(false));
+
+document.getElementById('tab-surface').addEventListener('click',function(){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');
+  state.showSurface=true;document.getElementById('show-surface').checked=true;buildScene();
+});
+document.getElementById('tab-residuals').addEventListener('click',function(){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');
+  state.showResiduals=!state.showResiduals;document.getElementById('show-residuals').checked=state.showResiduals;buildScene();
+});
+document.getElementById('tab-orbit').addEventListener('click',function(){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  autoOrbit=!autoOrbit;if(autoOrbit)this.classList.add('active');
+});
+document.querySelectorAll('.model-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{state.regType=btn.dataset.model;syncPoly();syncModelBtns();refresh(true);});
+});
+
+refresh(true);
+</script>
+</body>
+</html>

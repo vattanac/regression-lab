@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Regression Lab</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rajdhani:wght@300;400;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0d14;
+    --panel: #0f1420;
+    --border: #1e2a3a;
+    --cyan: #00e5ff;
+    --magenta: #ff2d78;
+    --green: #39ff7e;
+    --yellow: #ffe600;
+    --text: #c8d8e8;
+    --dim: #5a7080;
+    --accent: #1a2540;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-size: 13px;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    color: var(--cyan);
+    letter-spacing: 1px;
+    font-weight: 700;
+  }
+
+  .logo span { color: var(--text); }
+
+  .subtitle {
+    font-size: 11px;
+    color: var(--dim);
+    flex: 1;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+  }
+
+  .tab-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    padding: 4px 12px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tab-btn.active, .tab-btn:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: rgba(0,229,255,0.05);
+  }
+
+  .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  /* MAIN LAYOUT */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* CONTROLS PANEL */
+  .controls {
+    width: 220px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 12px;
+    overflow-y: auto;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .controls::-webkit-scrollbar { width: 4px; }
+  .controls::-webkit-scrollbar-track { background: transparent; }
+  .controls::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .ctrl-section label.section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--dim);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .ctrl-row {
+    margin-bottom: 10px;
+  }
+
+  .ctrl-row label {
+    display: block;
+    font-size: 12px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  select {
+    width: 100%;
+    background: var(--accent);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 8px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    border-radius: 2px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  select:focus { border-color: var(--cyan); }
+
+  .slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--cyan);
+    border: 2px solid var(--bg);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+  .slider-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--cyan);
+    min-width: 32px;
+    text-align: right;
+  }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    cursor: pointer;
+  }
+
+  .checkbox-row input[type=checkbox] {
+    accent-color: var(--cyan);
+    width: 13px;
+    height: 13px;
+    cursor: pointer;
+  }
+
+  .checkbox-row span {
+    font-size: 12px;
+    color: var(--text);
+    user-select: none;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 2px 0;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 6px;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 7px 6px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    border: 1px solid;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .btn-outline {
+    background: transparent;
+    border-color: var(--dim);
+    color: var(--dim);
+  }
+
+  .btn-outline:hover {
+    border-color: var(--text);
+    color: var(--text);
+    background: rgba(255,255,255,0.04);
+  }
+
+  .btn-primary {
+    background: rgba(0,229,255,0.1);
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+
+  .btn-primary:hover {
+    background: rgba(0,229,255,0.2);
+    box-shadow: 0 0 12px rgba(0,229,255,0.3);
+  }
+
+  /* METRICS */
+  .metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .metric-box {
+    background: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 8px;
+  }
+
+  .metric-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 1px;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .metric-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .metric-value.rmse { color: var(--magenta); }
+  .metric-value.r2 { color: var(--green); }
+
+  /* CANVAS AREA */
+  .canvas-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #080b12;
+  }
+
+  #three-canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .canvas-label {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 1px;
+    pointer-events: none;
+    text-transform: uppercase;
+  }
+
+  .canvas-label span { color: var(--cyan); }
+
+  .orbit-hint {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: var(--dim);
+    pointer-events: none;
+    background: rgba(10,13,20,0.7);
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  /* LEGEND */
+  .legend {
+    width: 190px;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    padding: 12px;
+    overflow-y: auto;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .legend-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-top: 3px;
+    flex-shrink: 0;
+  }
+
+  .legend-text {
+    font-size: 11px;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  .legend-text strong { color: var(--cyan); }
+
+  .formula-box {
+    background: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--cyan);
+    line-height: 1.6;
+  }
+
+  .formula-box .comment { color: var(--dim); }
+
+  .model-tags {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .model-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    color: var(--dim);
+    text-align: left;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+  }
+
+  .model-tag.active {
+    border-color: var(--cyan);
+    color: var(--text);
+    background: rgba(0,229,255,0.05);
+  }
+
+  .model-tag.active .model-dot { box-shadow: 0 0 6px currentColor; }
+
+  /* LOADING */
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(8,11,18,0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 10;
+    transition: opacity 0.5s;
+  }
+
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--border);
+    border-top-color: var(--cyan);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--cyan);
+    letter-spacing: 2px;
+  }
+
+  /* SCROLLBAR for legend/controls */
+  .legend::-webkit-scrollbar { width: 4px; }
+  .legend::-webkit-scrollbar-track { background: transparent; }
+  .legend::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .poly-section { transition: opacity 0.3s; }
+  .poly-section.disabled { opacity: 0.35; pointer-events: none; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-poly {
+    background: rgba(255,45,120,0.15);
+    color: var(--magenta);
+    border: 1px solid rgba(255,45,120,0.3);
+  }
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div>
+    <div class="logo">3D <span>Regression</span> Lab</div>
+    <div class="subtitle">Switch between Simple · Multiple · Polynomial regression and inspect the fitted geometry in 3D</div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-surface">
+      <span class="dot" style="background:#00e5ff"></span> 3D Surface Fit
+    </button>
+    <button class="tab-btn" id="tab-residuals">
+      <span class="dot" style="background:#ff2d78"></span> Residual Bars
+    </button>
+    <button class="tab-btn" id="tab-orbit">
+      <span class="dot" style="background:#39ff7e"></span> Auto Orbit
+    </button>
+  </div>
+</header>
+
+<div class="main">
+  <!-- CONTROLS -->
+  <div class="controls">
+    <div class="ctrl-section">
+      <label class="section-label">Controls</label>
+
+      <div class="ctrl-row">
+        <label>Regression type</label>
+        <select id="reg-type">
+          <option value="simple">Simple: y → x1</option>
+          <option value="multiple">Multiple: y → x1 + x2</option>
+          <option value="polynomial">Polynomial surface</option>
+        </select>
+      </div>
+
+      <div class="poly-section disabled" id="poly-controls">
+        <div class="ctrl-row">
+          <div class="section-header">
+            <label style="margin:0">Polynomial degree</label>
+            <span class="badge badge-poly">Polynomial only</span>
+          </div>
+          <div class="slider-wrap">
+            <input type="range" id="poly-degree" min="1" max="5" value="2">
+            <span class="slider-val" id="poly-degree-val">2</span>
+          </div>
+        </div>
+
+        <label class="checkbox-row">
+          <input type="checkbox" id="include-interaction" checked>
+          <span>Include interaction (x1×x2)<br><small style="color:var(--dim)">(Polynomial)</small></span>
+        </label>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="ctrl-row">
+        <label>Samples (n)</label>
+        <div class="slider-wrap">
+          <input type="range" id="samples" min="50" max="500" value="200" step="10">
+          <span class="slider-val" id="samples-val">200</span>
+        </div>
+      </div>
+
+      <div class="ctrl-row">
+        <label>Noise</label>
+        <div class="slider-wrap">
+          <input type="range" id="noise" min="0" max="30" value="8" step="0.5">
+          <span class="slider-val" id="noise-val">8</span>
+        </div>
+      </div>
+
+      <div class="ctrl-row">
+        <label>Collinearity (x1 ↔ x2)</label>
+        <div class="slider-wrap">
+          <input type="range" id="collinearity" min="0" max="0.99" value="0.3" step="0.01">
+          <span class="slider-val" id="collinearity-val">0.30</span>
+        </div>
+      </div>
+
+      <div class="ctrl-row">
+        <label>Surface resolution</label>
+        <div class="slider-wrap">
+          <input type="range" id="resolution" min="10" max="60" value="30" step="5">
+          <span class="slider-val" id="resolution-val">30</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="show-surface" checked>
+        <span>Show fitted surface</span>
+      </label>
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="show-residuals">
+        <span>Show residual bars</span>
+      </label>
+
+      <div class="divider"></div>
+
+      <div class="btn-row">
+        <button class="btn btn-outline" id="btn-regen">Regenerate data</button>
+        <button class="btn btn-primary" id="btn-refit">Refit model</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="metrics">
+      <div class="metric-box">
+        <span class="metric-label">RMSE</span>
+        <span class="metric-value rmse" id="rmse-val">—</span>
+      </div>
+      <div class="metric-box">
+        <span class="metric-label">R²</span>
+        <span class="metric-value r2" id="r2-val">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3D CANVAS -->
+  <div class="canvas-area">
+    <div class="loading-overlay" id="loading">
+      <div class="spinner"></div>
+      <div class="loading-text">FITTING MODEL...</div>
+    </div>
+    <canvas id="three-canvas"></canvas>
+    <div class="canvas-label">3D Fit Geometry &nbsp;·&nbsp; <span id="model-label">Simple y = β₀ + β₁x₁</span></div>
+    <div class="orbit-hint">🖱 Drag to rotate · Scroll to zoom · Right-click to pan</div>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <div>
+      <div class="legend-title">Legend (ID / EN)</div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#00e5ff"></div>
+        <div class="legend-text"><strong>Cyan</strong> = data (y)</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#ffffff"></div>
+        <div class="legend-text"><strong>White</strong> = prediction (ŷ)</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#ff2d78"></div>
+        <div class="legend-text"><strong>Lines</strong> = residuals (y − ŷ)</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:rgba(57,255,126,0.5); border:1px solid #39ff7e"></div>
+        <div class="legend-text"><strong>Surface</strong> = fit</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="legend-title">Quick Guide</div>
+      <div class="formula-box" id="formula-box">
+        <span class="comment"># Simple</span><br>
+        y = β₀ + β₁·x₁<br>
+        <br>
+        <span class="comment"># RMSE: lower = better</span><br>
+        <span class="comment"># R²: higher = better</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="legend-title">Switch Model</div>
+      <div class="model-tags">
+        <button class="model-tag active" data-model="simple">
+          <div class="legend-dot model-dot" style="background:#00e5ff; border-radius:2px; width:8px; height:8px;"></div>
+          Simple: y → x1
+        </button>
+        <button class="model-tag" data-model="multiple">
+          <div class="legend-dot model-dot" style="background:#39ff7e; border-radius:2px; width:8px; height:8px;"></div>
+          Multiple: y → x1+x2
+        </button>
+        <button class="model-tag" data-model="polynomial">
+          <div class="legend-dot model-dot" style="background:#ff2d78; border-radius:2px; width:8px; height:8px;"></div>
+          Polynomial surface
+        </button>
+      </div>
+    </div>
+
+    <div>
+      <div class="legend-title">Metrics Explained</div>
+      <div style="font-size:11px; color:var(--text); line-height:1.6">
+        <strong style="color:var(--magenta)">RMSE</strong> — typical error magnitude (lower is better)<br><br>
+        <strong style="color:var(--green)">R²</strong> — explained variance. Higher is better. Negative = worse than mean baseline.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ────────────────────────────────────────────────────────────
+//  STATE
+// ────────────────────────────────────────────────────────────
+const state = {
+  regType: 'simple',
+  polyDegree: 2,
+  includeInteraction: true,
+  samples: 200,
+  noise: 8,
+  collinearity: 0.3,
+  resolution: 30,
+  showSurface: true,
+  showResiduals: false,
+  autoOrbit: false,
+  showResidualBars: false,
+  data: null,
+  model: null,
+};
+
+// ────────────────────────────────────────────────────────────
+//  MATH HELPERS
+// ────────────────────────────────────────────────────────────
+function randn() {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+function generateData() {
+  const n = state.samples;
+  const noise = state.noise;
+  const rho = state.collinearity;
+  const x1 = [], x2 = [], y = [];
+
+  for (let i = 0; i < n; i++) {
+    const a = randn() * 3;
+    const b = randn() * 3;
+    const xi1 = a;
+    const xi2 = rho * a + Math.sqrt(1 - rho * rho) * b;
+    x1.push(xi1);
+    x2.push(xi2);
+
+    let yi;
+    if (state.regType === 'simple') {
+      yi = 2 * xi1 + 1 + randn() * noise;
+    } else if (state.regType === 'multiple') {
+      yi = 2 * xi1 + 1.5 * xi2 + 1 + randn() * noise;
+    } else {
+      // polynomial
+      yi = 1.5 * xi1 - 0.4 * xi1 * xi1 + xi2 + 0.3 * xi2 * xi2;
+      if (state.includeInteraction) yi += 0.5 * xi1 * xi2;
+      yi += 1 + randn() * noise;
+    }
+    y.push(yi);
+  }
+  state.data = { x1, x2, y };
+}
+
+// Ordinary Least Squares via normal equations
+function matMul(A, B, m, n, p) {
+  const C = new Array(m * p).fill(0);
+  for (let i = 0; i < m; i++)
+    for (let k = 0; k < n; k++)
+      for (let j = 0; j < p; j++)
+        C[i * p + j] += A[i * n + k] * B[k * p + j];
+  return C;
+}
+
+function transpose(A, m, n) {
+  const T = new Array(n * m);
+  for (let i = 0; i < m; i++)
+    for (let j = 0; j < n; j++)
+      T[j * m + i] = A[i * n + j];
+  return T;
+}
+
+function invertSmall(A, n) {
+  // Gauss-Jordan for small n×n
+  const a = A.slice();
+  const inv = Array.from({length: n * n}, (_, k) => k % (n + 1) === 0 ? 1 : 0);
+  for (let col = 0; col < n; col++) {
+    let pivot = -1, best = 0;
+    for (let row = col; row < n; row++) {
+      if (Math.abs(a[row * n + col]) > best) { best = Math.abs(a[row * n + col]); pivot = row; }
+    }
+    if (pivot < 0) return null;
+    if (pivot !== col) {
+      for (let j = 0; j < n; j++) {
+        [a[col * n + j], a[pivot * n + j]] = [a[pivot * n + j], a[col * n + j]];
+        [inv[col * n + j], inv[pivot * n + j]] = [inv[pivot * n + j], inv[col * n + j]];
+      }
+    }
+    const s = a[col * n + col];
+    for (let j = 0; j < n; j++) { a[col * n + j] /= s; inv[col * n + j] /= s; }
+    for (let row = 0; row < n; row++) {
+      if (row === col) continue;
+      const f = a[row * n + col];
+      for (let j = 0; j < n; j++) { a[row * n + j] -= f * a[col * n + j]; inv[row * n + j] -= f * inv[col * n + j]; }
+    }
+  }
+  return inv;
+}
+
+function buildDesignMatrix(x1, x2) {
+  const n = x1.length;
+  const rows = [];
+  for (let i = 0; i < n; i++) {
+    const row = [1, x1[i]];
+    if (state.regType !== 'simple') {
+      row.push(x2[i]);
+    }
+    if (state.regType === 'polynomial') {
+      for (let d = 2; d <= state.polyDegree; d++) {
+        row.push(Math.pow(x1[i], d));
+        row.push(Math.pow(x2[i], d));
+      }
+      if (state.includeInteraction) row.push(x1[i] * x2[i]);
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+function fitModel() {
+  const { x1, x2, y } = state.data;
+  const n = x1.length;
+  const rows = buildDesignMatrix(x1, x2);
+  const p = rows[0].length;
+
+  const X = rows.flat();
+  const Xt = transpose(X, n, p);
+  const XtX = matMul(Xt, X, p, n, p);
+  const XtXinv = invertSmall(XtX, p);
+  if (!XtXinv) { state.model = null; return; }
+
+  const Xty = new Array(p).fill(0);
+  for (let j = 0; j < p; j++)
+    for (let i = 0; i < n; i++)
+      Xty[j] += Xt[j * n + i] * y[i];
+
+  const beta = matMul(XtXinv, Xty, p, p, 1);
+
+  const predict = (a1, a2) => {
+    const r = [1, a1];
+    if (state.regType !== 'simple') r.push(a2);
+    if (state.regType === 'polynomial') {
+      for (let d = 2; d <= state.polyDegree; d++) { r.push(Math.pow(a1, d)); r.push(Math.pow(a2, d)); }
+      if (state.includeInteraction) r.push(a1 * a2);
+    }
+    return r.reduce((s, v, i) => s + v * beta[i], 0);
+  };
+
+  const yhat = x1.map((v, i) => predict(v, x2[i]));
+  const yMean = y.reduce((a, b) => a + b, 0) / n;
+  const ss_res = y.reduce((s, v, i) => s + (v - yhat[i]) ** 2, 0);
+  const ss_tot = y.reduce((s, v) => s + (v - yMean) ** 2, 0);
+  const rmse = Math.sqrt(ss_res / n);
+  const r2 = 1 - ss_res / ss_tot;
+
+  state.model = { beta, predict, yhat, rmse, r2 };
+}
+
+// ────────────────────────────────────────────────────────────
+//  THREE.JS SCENE
+// ────────────────────────────────────────────────────────────
+const canvas = document.getElementById('three-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x080b12);
+scene.fog = new THREE.FogExp2(0x080b12, 0.02);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+camera.position.set(18, 14, 22);
+camera.lookAt(0, 0, 0);
+
+// Ambient + directional lights
+const ambient = new THREE.AmbientLight(0x223344, 1.2);
+scene.add(ambient);
+const dirLight = new THREE.DirectionalLight(0x00e5ff, 0.6);
+dirLight.position.set(10, 20, 10);
+scene.add(dirLight);
+
+// Grid
+const gridHelper = new THREE.GridHelper(24, 20, 0x1e2a3a, 0x131d2a);
+scene.add(gridHelper);
+
+// Axis lines
+const axMat = new THREE.LineBasicMaterial({ color: 0x2a3f55 });
+const mkAxis = (from, to) => {
+  const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...from), new THREE.Vector3(...to)]);
+  scene.add(new THREE.Line(g, axMat));
+};
+mkAxis([-12, 0, 0], [12, 0, 0]);
+mkAxis([0, -10, 0], [0, 10, 0]);
+mkAxis([0, 0, -12], [0, 0, 12]);
+
+// Objects to track/dispose
+let pointCloud = null, surfaceMesh = null, residualLines = null;
+
+function disposeAll() {
+  [pointCloud, surfaceMesh, residualLines].forEach(obj => {
+    if (obj) { obj.geometry?.dispose(); obj.material?.dispose(); scene.remove(obj); }
+  });
+  pointCloud = surfaceMesh = residualLines = null;
+}
+
+const SCALE = 2.5; // world units per data unit
+
+function buildScene() {
+  disposeAll();
+  if (!state.data || !state.model) return;
+
+  const { x1, x2, y } = state.data;
+  const { predict, yhat } = state.model;
+  const n = x1.length;
+
+  // ── POINTS ──
+  const ptGeo = new THREE.BufferGeometry();
+  const positions = new Float32Array(n * 3);
+  const colors = new Float32Array(n * 3);
+
+  const yMin = Math.min(...y), yMax = Math.max(...y);
+  const yRange = yMax - yMin || 1;
+
+  for (let i = 0; i < n; i++) {
+    positions[i * 3] = x1[i] * SCALE;
+    positions[i * 3 + 1] = y[i] * 0.4;
+    positions[i * 3 + 2] = x2[i] * SCALE;
+
+    const t = (y[i] - yMin) / yRange;
+    // cyan → magenta gradient
+    colors[i * 3] = t;
+    colors[i * 3 + 1] = 0.9 * (1 - t);
+    colors[i * 3 + 2] = 1;
+  }
+  ptGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  ptGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const ptMat = new THREE.PointsMaterial({ size: 0.18, vertexColors: true, sizeAttenuation: true });
+  pointCloud = new THREE.Points(ptGeo, ptMat);
+  scene.add(pointCloud);
+
+  // ── SURFACE ──
+  if (state.showSurface) {
+    const res = state.resolution;
+    const xMin = Math.min(...x1), xMax = Math.max(...x1);
+    const zMin = Math.min(...x2), zMax = Math.max(...x2);
+
+    const verts = [];
+    const surfColors = [];
+    const indices = [];
+
+    for (let i = 0; i <= res; i++) {
+      for (let j = 0; j <= res; j++) {
+        const xi = xMin + (xMax - xMin) * i / res;
+        const zi = zMin + (zMax - zMin) * j / res;
+        const yi = predict(xi, zi);
+        verts.push(xi * SCALE, yi * 0.4, zi * SCALE);
+        // green-teal color for surface
+        const t = (yi - yMin) / yRange;
+        surfColors.push(0, 0.8 + 0.2 * t, 0.5 + 0.3 * t);
+      }
+    }
+
+    for (let i = 0; i < res; i++) {
+      for (let j = 0; j < res; j++) {
+        const a = i * (res + 1) + j;
+        const b = a + 1;
+        const c = (i + 1) * (res + 1) + j;
+        const d = c + 1;
+        indices.push(a, b, d, a, d, c);
+      }
+    }
+
+    const sGeo = new THREE.BufferGeometry();
+    sGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts), 3));
+    sGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(surfColors), 3));
+    sGeo.setIndex(indices);
+    sGeo.computeVertexNormals();
+
+    const sMat = new THREE.MeshPhongMaterial({
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.45,
+      side: THREE.DoubleSide,
+      shininess: 60,
+      wireframe: false,
+    });
+    surfaceMesh = new THREE.Mesh(sGeo, sMat);
+    scene.add(surfaceMesh);
+
+    // Wireframe overlay
+    const wireGeo = new THREE.WireframeGeometry(sGeo);
+    const wireMat = new THREE.LineBasicMaterial({ color: 0x1e3a2a, transparent: true, opacity: 0.25 });
+    const wire = new THREE.LineSegments(wireGeo, wireMat);
+    surfaceMesh.add(wire);
+  }
+
+  // ── RESIDUAL BARS ──
+  if (state.showResiduals) {
+    const rGeo = new THREE.BufferGeometry();
+    const rPos = [];
+    for (let i = 0; i < n; i++) {
+      rPos.push(x1[i] * SCALE, y[i] * 0.4, x2[i] * SCALE);
+      rPos.push(x1[i] * SCALE, yhat[i] * 0.4, x2[i] * SCALE);
+    }
+    rGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(rPos), 3));
+    const rMat = new THREE.LineBasicMaterial({ color: 0xff2d78, transparent: true, opacity: 0.5 });
+    residualLines = new THREE.LineSegments(rGeo, rMat);
+    scene.add(residualLines);
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+//  ORBIT CONTROLS (simple implementation)
+// ────────────────────────────────────────────────────────────
+let isDragging = false, isPanning = false;
+let prevX = 0, prevY = 0;
+let spherical = { theta: 0.9, phi: 0.6, r: 36 };
+let panOffset = new THREE.Vector3(0, 0, 0);
+
+function updateCamera() {
+  const x = spherical.r * Math.sin(spherical.phi) * Math.sin(spherical.theta);
+  const y = spherical.r * Math.cos(spherical.phi);
+  const z = spherical.r * Math.sin(spherical.phi) * Math.cos(spherical.theta);
+  camera.position.set(x + panOffset.x, y + panOffset.y, z + panOffset.z);
+  camera.lookAt(panOffset);
+}
+updateCamera();
+
+canvas.addEventListener('mousedown', e => {
+  if (e.button === 2) { isPanning = true; }
+  else { isDragging = true; }
+  prevX = e.clientX; prevY = e.clientY;
+});
+window.addEventListener('mouseup', () => { isDragging = false; isPanning = false; });
+window.addEventListener('mousemove', e => {
+  if (isDragging) {
+    const dx = e.clientX - prevX, dy = e.clientY - prevY;
+    spherical.theta -= dx * 0.008;
+    spherical.phi = Math.max(0.05, Math.min(Math.PI - 0.05, spherical.phi - dy * 0.008));
+    updateCamera();
+  } else if (isPanning) {
+    const dx = (e.clientX - prevX) * 0.04;
+    const dy = (e.clientY - prevY) * 0.04;
+    const right = new THREE.Vector3().crossVectors(
+      camera.getWorldDirection(new THREE.Vector3()),
+      camera.up
+    ).normalize();
+    panOffset.addScaledVector(right, -dx);
+    panOffset.y += dy;
+    updateCamera();
+  }
+  prevX = e.clientX; prevY = e.clientY;
+});
+canvas.addEventListener('wheel', e => {
+  spherical.r = Math.max(5, Math.min(80, spherical.r + e.deltaY * 0.05));
+  updateCamera();
+  e.preventDefault();
+}, { passive: false });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// Touch support
+let lastTouchDist = 0;
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) { isDragging = true; prevX = e.touches[0].clientX; prevY = e.touches[0].clientY; }
+  if (e.touches.length === 2) { lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
+});
+canvas.addEventListener('touchend', () => { isDragging = false; });
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length === 1 && isDragging) {
+    const dx = e.touches[0].clientX - prevX, dy = e.touches[0].clientY - prevY;
+    spherical.theta -= dx * 0.008; spherical.phi = Math.max(0.05, Math.min(Math.PI - 0.05, spherical.phi - dy * 0.008));
+    updateCamera(); prevX = e.touches[0].clientX; prevY = e.touches[0].clientY;
+  }
+  if (e.touches.length === 2) {
+    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    spherical.r = Math.max(5, Math.min(80, spherical.r - (d - lastTouchDist) * 0.1));
+    lastTouchDist = d; updateCamera();
+  }
+  e.preventDefault();
+}, { passive: false });
+
+// ────────────────────────────────────────────────────────────
+//  AUTO ORBIT
+// ────────────────────────────────────────────────────────────
+let autoOrbit = false;
+let orbitClock = 0;
+
+// ────────────────────────────────────────────────────────────
+//  RESIZE
+// ────────────────────────────────────────────────────────────
+function resize() {
+  const ca = document.querySelector('.canvas-area');
+  const w = ca.clientWidth, h = ca.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ────────────────────────────────────────────────────────────
+//  RENDER LOOP
+// ────────────────────────────────────────────────────────────
+function animate() {
+  requestAnimationFrame(animate);
+  if (autoOrbit) {
+    spherical.theta += 0.004;
+    updateCamera();
+  }
+  renderer.render(scene, camera);
+}
+animate();
+
+// ────────────────────────────────────────────────────────────
+//  FULL REFRESH
+// ────────────────────────────────────────────────────────────
+function refresh(regenData = true) {
+  const loading = document.getElementById('loading');
+  loading.classList.remove('hidden');
+
+  setTimeout(() => {
+    if (regenData) generateData();
+    fitModel();
+    buildScene();
+    updateMetrics();
+    updateFormula();
+    loading.classList.add('hidden');
+  }, 30);
+}
+
+function updateMetrics() {
+  const rmseEl = document.getElementById('rmse-val');
+  const r2El = document.getElementById('r2-val');
+  if (state.model) {
+    rmseEl.textContent = state.model.rmse.toFixed(3);
+    r2El.textContent = state.model.r2.toFixed(3);
+    r2El.style.color = state.model.r2 < 0 ? 'var(--magenta)' : 'var(--green)';
+  } else {
+    rmseEl.textContent = '—'; r2El.textContent = '—';
+  }
+}
+
+function updateFormula() {
+  const lbl = document.getElementById('model-label');
+  const fbox = document.getElementById('formula-box');
+  if (state.regType === 'simple') {
+    lbl.textContent = 'Simple y = β₀ + β₁x₁';
+    fbox.innerHTML = '<span class="comment"># Simple Linear</span><br>y = β₀ + β₁·x₁<br><br><span class="comment"># 1 predictor</span><br><span class="comment"># Fits a line/plane</span>';
+  } else if (state.regType === 'multiple') {
+    lbl.textContent = 'Multiple y = β₀ + β₁x₁ + β₂x₂';
+    fbox.innerHTML = '<span class="comment"># Multiple Linear</span><br>y = β₀ + β₁·x₁<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ β₂·x₂<br><br><span class="comment"># Fits a flat plane</span>';
+  } else {
+    const deg = state.polyDegree;
+    lbl.textContent = `Polynomial surface (deg=${deg})`;
+    fbox.innerHTML = `<span class="comment"># Polynomial (deg=${deg})</span><br>y = β₀ + β₁·x₁ + ...<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ βₙ·x₁ⁿ + βₘ·x₂ⁿ${state.includeInteraction ? '<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ βᵢ·x₁·x₂' : ''}<br><br><span class="comment"># Curved surface</span>`;
+  }
+}
+
+function syncPolySection() {
+  const pc = document.getElementById('poly-controls');
+  pc.classList.toggle('disabled', state.regType !== 'polynomial');
+}
+
+function syncModelTags() {
+  document.querySelectorAll('.model-tag').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.model === state.regType);
+  });
+  const regSel = document.getElementById('reg-type');
+  regSel.value = state.regType;
+}
+
+// ────────────────────────────────────────────────────────────
+//  UI BINDINGS
+// ────────────────────────────────────────────────────────────
+function bindSlider(id, valId, stateKey, parser, decimals, cb) {
+  const el = document.getElementById(id);
+  const vEl = document.getElementById(valId);
+  el.addEventListener('input', () => {
+    state[stateKey] = parser(el.value);
+    vEl.textContent = state[stateKey].toFixed ? state[stateKey].toFixed(decimals) : state[stateKey];
+    if (cb) cb();
+  });
+}
+
+bindSlider('poly-degree', 'poly-degree-val', 'polyDegree', parseInt, 0);
+bindSlider('samples', 'samples-val', 'samples', parseInt, 0);
+bindSlider('noise', 'noise-val', 'noise', parseFloat, 1);
+bindSlider('collinearity', 'collinearity-val', 'collinearity', parseFloat, 2);
+bindSlider('resolution', 'resolution-val', 'resolution', parseInt, 0);
+
+document.getElementById('reg-type').addEventListener('change', e => {
+  state.regType = e.target.value;
+  syncPolySection();
+  syncModelTags();
+  refresh(true);
+});
+
+document.getElementById('include-interaction').addEventListener('change', e => {
+  state.includeInteraction = e.target.checked;
+});
+
+document.getElementById('show-surface').addEventListener('change', e => {
+  state.showSurface = e.target.checked;
+  buildScene();
+});
+
+document.getElementById('show-residuals').addEventListener('change', e => {
+  state.showResiduals = e.target.checked;
+  buildScene();
+});
+
+document.getElementById('btn-regen').addEventListener('click', () => refresh(true));
+document.getElementById('btn-refit').addEventListener('click', () => refresh(false));
+
+// Tabs
+document.getElementById('tab-surface').addEventListener('click', function() {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  this.classList.add('active');
+  state.showSurface = true;
+  document.getElementById('show-surface').checked = true;
+  autoOrbit = false;
+  buildScene();
+});
+
+document.getElementById('tab-residuals').addEventListener('click', function() {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  this.classList.add('active');
+  state.showResiduals = !state.showResiduals;
+  document.getElementById('show-residuals').checked = state.showResiduals;
+  buildScene();
+});
+
+document.getElementById('tab-orbit').addEventListener('click', function() {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  autoOrbit = !autoOrbit;
+  if (autoOrbit) this.classList.add('active');
+});
+
+// Model tag buttons in legend
+document.querySelectorAll('.model-tag').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.regType = btn.dataset.model;
+    syncPolySection();
+    syncModelTags();
+    refresh(true);
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+//  INIT
+// ────────────────────────────────────────────────────────────
+refresh(true);
+</script>
+</body>
+</html>
