@@ -143,7 +143,7 @@ Degree 2 → parabola   Degree 3 → S-curve   Degree 4+ → complex waves
 
 ### Quick Start
 
-1. **Open the [Live Demo](https://your-demo-link.com)** in your browser
+1. **Open the [Live Demo](https://regression-lab.netlify.app/)** in your browser
 2. Select a **Regression type** from the dropdown in the left panel
 3. Click **Regenerate data** to create a fresh dataset
 4. Click **Refit model** to fit the regression
@@ -324,7 +324,7 @@ Free to use, modify, and distribute — with attribution appreciated.
 
 **Built with curiosity for anyone who wants to see math move.**
 
-[![Live Demo](https://img.shields.io/badge/🚀_Try_It_Now-Launch_Demo-2563EB?style=for-the-badge)](https://your-demo-link.com)
+[![Live Demo](https://regression-lab.netlify.app/)
 
 <br/>
 
