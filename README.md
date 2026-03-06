@@ -324,7 +324,7 @@ Free to use, modify, and distribute — with attribution appreciated.
 
 **Built with curiosity for anyone who wants to see math move.**
 
-![Live Demo](https://regression-lab.netlify.app/)
+[Live Demo](https://regression-lab.netlify.app/)
 
 <br/>
 
