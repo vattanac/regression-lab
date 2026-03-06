@@ -1,5 +1,3 @@
-<div align="center">
-
 ## 📖 Table of Contents
 
 - [Overview](#-overview)
@@ -32,7 +30,6 @@ It was built to serve one belief: **you don't truly understand something until y
 
 ## 🚀 Live Demo
 
-<div align="center">
 
 ### 👉 [**Launch the Interactive 3D Regression Lab →**](https://regression-lab.netlify.app/)
 
@@ -324,7 +321,6 @@ Free to use, modify, and distribute — with attribution appreciated.
 
 ---
 
-<div align="center">
 
 **Built with curiosity for anyone who wants to see math move.**
 
