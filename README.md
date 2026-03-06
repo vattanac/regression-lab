@@ -288,39 +288,6 @@ regression-lab.html
     └── UI bindings            # All sliders, selects, checkboxes, buttons
 ```
 
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Ideas for improvement:
-
-- [ ] Add Lasso / Ridge regularization visualization
-- [ ] Export fitted model coefficients as JSON
-- [ ] Side-by-side comparison mode (two models simultaneously)
-- [ ] Animated coefficient-change transitions
-- [ ] Real dataset upload (CSV support)
-- [ ] Dark / light theme toggle
-
-To contribute:
-
-```bash
-# Fork the repo, then:
-git checkout -b feature/your-feature-name
-# Make changes to regression-lab.html
-git commit -m "feat: describe your change"
-git push origin feature/your-feature-name
-# Open a Pull Request
-```
-
----
-
-## 📄 License
-
-This project is released under the [MIT License](./LICENSE).  
-Free to use, modify, and distribute — with attribution appreciated.
-
----
-
 
 **Built with curiosity for anyone who wants to see math move.**
 
