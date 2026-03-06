@@ -494,10 +494,17 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.18); backgrou
 <script>
 // ── STATE ──
 const state={
-  regType:'simple',polyDegree:2,includeInteraction:true,
-  samples:200,noise:8,collinearity:0.3,resolution:30,
-  showSurface:true,showResiduals:false,
-  data:null,model:null
+  regType:'simple',
+  polyDegree:2,
+  includeInteraction:true,
+  samples:200,
+  noise:8,
+  collinearity:0.3,
+  resolution:30,
+  showSurface:true,
+  showResiduals:false,
+  data:null,
+  model:null
 };
 
 // ── MATH ──
@@ -714,43 +721,184 @@ function updateFormula(){
   }
 }
 
-function syncPoly(){document.getElementById('poly-controls').classList.toggle('disabled',state.regType!=='polynomial');}
-function syncModelBtns(){document.querySelectorAll('.model-btn').forEach(b=>b.classList.toggle('active',b.dataset.model===state.regType));document.getElementById('reg-type').value=state.regType;}
-
-// ── BINDINGS ──
-function bindSlider(id,vid,key,parse,dec){
-  const el=document.getElementById(id),ve=document.getElementById(vid);
-  el.addEventListener('input',()=>{state[key]=parse(el.value);ve.textContent=dec>0?state[key].toFixed(dec):state[key];});
+function syncPoly(){
+  document.getElementById('poly-controls').classList.toggle('disabled', state.regType !== 'polynomial');
 }
-bindSlider('poly-degree','poly-degree-val','polyDegree',parseInt,0);
-bindSlider('samples','samples-val','samples',parseInt,0);
-bindSlider('noise','noise-val','noise',parseFloat,1);
-bindSlider('collinearity','collinearity-val','collinearity',parseFloat,2);
-bindSlider('resolution','resolution-val','resolution',parseInt,0);
 
-document.getElementById('reg-type').addEventListener('change',e=>{state.regType=e.target.value;syncPoly();syncModelBtns();refresh(true);});
-document.getElementById('include-interaction').addEventListener('change',e=>state.includeInteraction=e.target.checked);
-document.getElementById('show-surface').addEventListener('change',e=>{state.showSurface=e.target.checked;buildScene();});
-document.getElementById('show-residuals').addEventListener('change',e=>{state.showResiduals=e.target.checked;buildScene();});
-document.getElementById('btn-regen').addEventListener('click',()=>refresh(true));
-document.getElementById('btn-refit').addEventListener('click',()=>refresh(false));
+function syncModelBtns(){
+  document.querySelectorAll('.model-btn').forEach(b => b.classList.toggle('active', b.dataset.model === state.regType));
+  document.getElementById('reg-type').value = state.regType;
+}
 
-document.getElementById('tab-surface').addEventListener('click',function(){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');
-  state.showSurface=true;document.getElementById('show-surface').checked=true;buildScene();
-});
-document.getElementById('tab-residuals').addEventListener('click',function(){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');
-  state.showResiduals=!state.showResiduals;document.getElementById('show-residuals').checked=state.showResiduals;buildScene();
-});
-document.getElementById('tab-orbit').addEventListener('click',function(){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  autoOrbit=!autoOrbit;if(autoOrbit)this.classList.add('active');
-});
-document.querySelectorAll('.model-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{state.regType=btn.dataset.model;syncPoly();syncModelBtns();refresh(true);});
+function syncTabBtns(activeId){
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  if(activeId) document.getElementById(activeId).classList.add('active');
+}
+
+function syncCheckboxUI(id, val){
+  // keep the visible custom checkbox in sync
+  document.getElementById(id).checked = val;
+}
+
+// ── DEBOUNCE ──
+function debounce(fn, delay){
+  let t;
+  return function(){ clearTimeout(t); t = setTimeout(fn, delay); };
+}
+
+// ── REFRESH ──
+function refresh(regen){
+  const overlay = document.getElementById('loading');
+  overlay.classList.remove('hidden');
+  // Use setTimeout so the browser paints the spinner before heavy work
+  setTimeout(function(){
+    if(regen) generateData();
+    fitModel();
+    buildScene();
+    updateMetrics();
+    updateFormula();
+    overlay.classList.add('hidden');
+  }, 40);
+}
+
+function updateMetrics(){
+  const rv = document.getElementById('rmse-val');
+  const r2el = document.getElementById('r2-val');
+  if(state.model){
+    rv.textContent  = state.model.rmse.toFixed(3);
+    rv.className    = 'met-val';
+    r2el.textContent= state.model.r2.toFixed(3);
+    r2el.className  = 'met-val ' + (state.model.r2 > 0.5 ? 'good' : 'warn');
+  } else {
+    rv.textContent = '—'; rv.className = 'met-val';
+    r2el.textContent = '—'; r2el.className = 'met-val';
+  }
+}
+
+function updateFormula(){
+  const lbl = document.getElementById('model-label');
+  const fb  = document.getElementById('formula-box');
+  if(state.regType === 'simple'){
+    lbl.textContent = 'Simple  y = β₀ + β₁x₁';
+    fb.innerHTML = '<span class="cmt">// Simple linear</span><br>y = β₀ + β₁·x₁';
+  } else if(state.regType === 'multiple'){
+    lbl.textContent = 'Multiple  y = β₀ + β₁x₁ + β₂x₂';
+    fb.innerHTML = '<span class="cmt">// Multiple linear</span><br>y = β₀ + β₁·x₁<br>&nbsp;&nbsp;&nbsp;&nbsp;+ β₂·x₂';
+  } else {
+    const d = state.polyDegree;
+    lbl.textContent = 'Polynomial surface (deg ' + d + ')';
+    fb.innerHTML = '<span class="cmt">// Polynomial deg=' + d + '</span><br>y = β₀ + β₁x + … + x₁ⁿ + x₂ⁿ'
+      + (state.includeInteraction ? '<br>&nbsp;&nbsp;&nbsp;&nbsp;+ β·x₁x₂' : '');
+  }
+}
+
+// ── SLIDER HELPER ──
+function bindSlider(id, valId, stateKey, parseFn, decimals, onChangeFn){
+  const slider = document.getElementById(id);
+  const valEl  = document.getElementById(valId);
+  const debouncedChange = debounce(onChangeFn, 350);
+  slider.addEventListener('input', function(){
+    state[stateKey] = parseFn(this.value);
+    valEl.textContent = decimals > 0 ? state[stateKey].toFixed(decimals) : state[stateKey];
+    debouncedChange();
+  });
+}
+
+// ── ALL BINDINGS ──
+
+// 1. Regression type dropdown
+document.getElementById('reg-type').addEventListener('change', function(){
+  state.regType = this.value;
+  syncPoly();
+  syncModelBtns();
+  refresh(true);
 });
 
+// 2. Polynomial degree slider — refit only (same data)
+bindSlider('poly-degree', 'poly-degree-val', 'polyDegree', parseInt, 0, function(){ refresh(false); });
+
+// 3. Include interaction checkbox
+document.getElementById('include-interaction').addEventListener('change', function(){
+  state.includeInteraction = this.checked;
+  refresh(false);
+});
+
+// 4. Samples — regenerate data + refit
+bindSlider('samples', 'samples-val', 'samples', parseInt, 0, function(){ refresh(true); });
+
+// 5. Noise — regenerate data + refit
+bindSlider('noise', 'noise-val', 'noise', parseFloat, 1, function(){ refresh(true); });
+
+// 6. Collinearity — regenerate data + refit
+bindSlider('collinearity', 'collinearity-val', 'collinearity', parseFloat, 2, function(){ refresh(true); });
+
+// 7. Surface resolution — rebuild scene only (no refit needed)
+bindSlider('resolution', 'resolution-val', 'resolution', parseInt, 0, function(){ buildScene(); });
+
+// 8. Show fitted surface checkbox
+document.getElementById('show-surface').addEventListener('change', function(){
+  state.showSurface = this.checked;
+  // keep tab-surface in sync
+  if(!state.showSurface && !state.showResiduals){
+    syncTabBtns(null);
+  }
+  buildScene();
+});
+
+// 9. Show residual bars checkbox
+document.getElementById('show-residuals').addEventListener('change', function(){
+  state.showResiduals = this.checked;
+  buildScene();
+});
+
+// 10. Regenerate button
+document.getElementById('btn-regen').addEventListener('click', function(){
+  refresh(true);
+});
+
+// 11. Refit model button
+document.getElementById('btn-refit').addEventListener('click', function(){
+  refresh(false);
+});
+
+// 12. Tab: Surface Fit
+document.getElementById('tab-surface').addEventListener('click', function(){
+  state.showSurface = true;
+  syncCheckboxUI('show-surface', true);
+  syncTabBtns('tab-surface');
+  buildScene();
+});
+
+// 13. Tab: Residuals (toggle)
+document.getElementById('tab-residuals').addEventListener('click', function(){
+  state.showResiduals = !state.showResiduals;
+  syncCheckboxUI('show-residuals', state.showResiduals);
+  syncTabBtns(state.showResiduals ? 'tab-residuals' : 'tab-surface');
+  buildScene();
+});
+
+// 14. Tab: Auto Orbit (toggle)
+document.getElementById('tab-orbit').addEventListener('click', function(){
+  autoOrbit = !autoOrbit;
+  if(autoOrbit){
+    syncTabBtns('tab-orbit');
+  } else {
+    // restore whichever was last active
+    syncTabBtns(state.showResiduals ? 'tab-residuals' : 'tab-surface');
+  }
+});
+
+// 15. Legend model buttons
+document.querySelectorAll('.model-btn').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    state.regType = this.dataset.model;
+    syncPoly();
+    syncModelBtns();
+    refresh(true);
+  });
+});
+
+// ── INIT ──
 refresh(true);
 </script>
 </body>
